@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101713">
+  <meta name="description" content="ClearCut — editor gratuito de imagens com processamento local e privacidade por padrão.">
+  <title>ClearCut — Editor de imagens</title>
+  <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="ClearCut início">
+      <span class="brand-mark" aria-hidden="true">C</span><span>ClearCut</span>
+    </a>
+    <div class="topbar-right">
+      <span class="privacy-pill"><span class="status-dot"></span> Processamento local</span>
+      <a class="github-link" href="https://github.com/mpjbiologo/ClearCut" target="_blank" rel="noreferrer">GitHub ↗</a>
+    </div>
+  </header>
+  <main class="app-shell">
+    <section class="intro">
+      <p class="eyebrow">EDITOR DE IMAGENS · GRATUITO E PRIVADO</p>
+      <h1>Seu recorte.<br><span>Seu controle.</span></h1>
+      <p class="intro-copy">Remova fundos, refine imagens e crie composições diretamente no navegador. Suas imagens ficam no seu dispositivo.</p>
+    </section>
+    <section class="workspace" aria-label="Área de trabalho">
+      <div class="workspace-head">
+        <div><p class="section-kicker">ÁREA DE TRABALHO</p><h2>Comece com uma imagem</h2></div>
+        <span class="local-tag"><span class="status-dot"></span> Somente neste dispositivo</span>
+      </div>
+      <div class="editor-grid">
+        <section class="preview-panel">
+          <div class="panel-heading"><span>PRÉ-VISUALIZAÇÃO</span><span id="imageDimensions" class="muted">Nenhuma imagem</span></div>
+          <div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="Selecionar ou arrastar uma imagem">
+            <div id="emptyState" class="empty-state">
+              <div class="upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M4 15.5v3A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <h3>Arraste sua imagem para cá</h3><p>ou escolha um arquivo no seu dispositivo</p>
+              <button id="chooseButton" class="button button-primary" type="button">Selecionar imagem</button>
+              <p class="file-hint">JPG, PNG, WebP ou AVIF · A imagem não é enviada</p>
+            </div>
+            <img id="sourcePreview" class="source-preview hidden" alt="Pré-visualização da imagem selecionada">
+          </div>
+          <input id="fileInput" type="file" accept="image/jpeg,image/png,image/webp,image/avif" hidden>
+          <div class="preview-footer"><span id="fileName" class="muted">Nenhum arquivo carregado</span><button id="clearButton" class="text-button" type="button" disabled>Limpar imagem</button></div>
+        </section>
+        <aside class="tools-panel">
+          <div class="panel-heading"><span>FERRAMENTAS</span><span class="coming-tag">EM DESENVOLVIMENTO</span></div>
+          <div class="tool-card tool-card-active"><span class="tool-icon">✦</span><div><strong>Remoção com IA</strong><p>Segmentação local no navegador</p></div><span class="tool-state">Próxima etapa</span></div>
+          <div class="tool-card"><span class="tool-icon">◐</span><div><strong>Trocar fundo</strong><p>Cores, gradientes e imagens</p></div><span class="tool-lock">02</span></div>
+          <div class="tool-card"><span class="tool-icon">✎</span><div><strong>Refinar recorte</strong><p>Pincéis para remover e restaurar</p></div><span class="tool-lock">03</span></div>
+          <div class="tool-card"><span class="tool-icon">▧</span><div><strong>Recortar e ajustar</strong><p>Enquadramento e proporções</p></div><span class="tool-lock">04</span></div>
+          <div class="export-area"><div class="export-title">EXPORTAR</div><button id="exportButton" class="button button-export" type="button" disabled>Baixar imagem <span>↓</span></button><p id="exportNote" class="export-note">Carregue uma imagem para habilitar a exportação.</p></div>
+        </aside>
+      </div>
+    </section>
+    <section class="principles">
+      <article><span>01</span><div><h3>Privacidade real</h3><p>As imagens permanecem no seu dispositivo. Sem upload automático.</p></div></article>
+      <article><span>02</span><div><h3>Sem cobranças</h3><p>Sem créditos, assinatura, marca-d'água ou limite artificial.</p></div></article>
+      <article><span>03</span><div><h3>Seu espaço de trabalho</h3><p>Projetos e preferências serão salvos localmente, sob seu controle.</p></div></article>
+    </section>
+    <p id="statusMessage" class="status-message" role="status" aria-live="polite">Pronto para receber uma imagem.</p>
+  </main>
+  <footer class="footer"><span>ClearCut · Projeto livre e gratuito</span><span>Feito para processar localmente.</span></footer>
+  <script src="./app.js" defer></script>
+  <script>
+    if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+      window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(() => {}));
+    }
+  </script>
+</body>
+</html>
