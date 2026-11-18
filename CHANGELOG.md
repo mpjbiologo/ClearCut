@@ -2,6 +2,13 @@
 
 Todas as alterações relevantes do projeto serão registradas aqui.
 
+## 2026-11-18 — Pesquisa e seleção preliminar do motor de IA
+
+- Documentada a avaliação de BiRefNet Lite Web (MIT) como candidato principal para protótipo ONNX Runtime Web.
+- Registrada estratégia WebGPU com fallback WASM, execução em Worker, validação SHA-256 e cache local.
+- Documentadas limitações conhecidas e alternativa ISNet int8 (Apache-2.0).
+- Nenhum motor foi ativado ainda: a integração depende de testes reais de compatibilidade, desempenho, memória e qualidade.
+
 ## 2026-11-18 — Fundação inicial
 
 - Criada a estrutura inicial do ClearCut.
