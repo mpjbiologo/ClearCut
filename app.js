@@ -22,7 +22,6 @@
     if (!file) return;
     const supported = ["image/jpeg", "image/png", "image/webp", "image/avif"];
     if (!supported.includes(file.type)) { announce("Formato inválido. Use JPG, PNG, WebP ou AVIF."); return; }
-    if (file.size > 30 * 1024 * 1024) { announce("A imagem ultrapassa o limite inicial de 30 MB."); return; }
     if (currentUrl) URL.revokeObjectURL(currentUrl);
     currentFile = file; currentUrl = URL.createObjectURL(file);
     const image = new Image();
