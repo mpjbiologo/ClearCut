@@ -16,16 +16,16 @@ ClearCut será uma aplicação web estática, hospedada no GitHub Pages. O objet
 
 ## Estado atual
 
-**Fase inicial — fundação da aplicação.**
+**Fase atual — fundação publicada e protótipo ISNet int8 em validação isolada.**
 
 Já estão sendo preparados:
 - Interface responsiva em português.
 - Seleção de arquivos, arrastar e soltar e pré-visualização.
 - Exportação local de imagem.
 - Estrutura PWA e cache do shell da aplicação.
-- Base para editor e motor de inferência local.
+- Laboratório experimental ISNet int8 para comparar WASM e WebGPU.\n- Coleta de tempo de download, criação da sessão, inferência e estimativa de memória.\n- Checklist de avaliação visual e protocolo documentado antes da integração definitiva.
 
-**Atenção:** a remoção automática por IA ainda não está habilitada nesta primeira fundação. Ela será integrada após a seleção e validação de um modelo compatível com execução no navegador e com licença adequada. A interface não simulará uma remoção que ainda não ocorreu.
+**Atenção:** a remoção automática por IA ainda não está habilitada no editor principal. O laboratório ISNet é experimental e não representa aprovação do modelo. A integração depende de validação de qualidade, desempenho, memória, CORS, integridade e funcionamento nos navegadores-alvo. A interface principal não simulará uma remoção que ainda não ocorreu.
 
 ## Tecnologias planejadas
 

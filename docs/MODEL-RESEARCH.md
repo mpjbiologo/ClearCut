@@ -6,7 +6,7 @@ Atualizado em 18/11/2026.
 
 Selecionar um modelo de segmentação executado integralmente no navegador, sem enviar imagens para um servidor de inferência, sem API paga e sem cadastro.
 
-## Candidato principal: BiRefNet Lite para navegador
+## Candidato inicialmente pesquisado: BiRefNet Lite para navegador
 
 Repositório do modelo: https://huggingface.co/clevr-tools/birefnet-lite-web
 
@@ -48,7 +48,7 @@ ISNet int8 para navegador: https://huggingface.co/chenjindu/isnet-web
 
 ## Decisão desta etapa
 
-BiRefNet Lite Web é o candidato principal para um primeiro protótipo, não uma integração aprovada para produção ainda. Antes de habilitar o botão de remoção, validar carregamento, CORS, integridade SHA-256, memória, tempo de inferência e resultado real em Chrome/Edge, Firefox e Safari. A qualidade precisa ser testada com pessoas, cabelo, animais, produtos, objetos translúcidos e fundos complexos.
+BiRefNet Lite Web é o candidato principal para um primeiro protótipo, não uma integração aprovada para produção ainda. Antes de habilitar o botão de remoção no editor principal, validar carregamento, CORS, integridade SHA-256, memória, tempo de inferência e resultado real em Chrome/Edge, Firefox e Safari. A qualidade precisa ser testada com pessoas, cabelo, animais, produtos, objetos translúcidos e fundos complexos.
 
 ## Referências
 
