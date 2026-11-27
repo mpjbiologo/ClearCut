@@ -5,7 +5,7 @@ const input=$("imageInput"),wasm=$("runWasm"),gpu=$("runWebGpu"),download=$("dow
 const status=$("status"),log=$("log"),progress=$("progress"),original=$("originalPreview"),resultCanvas=$("resultCanvas");
 const editor=$("editorCanvas"),stage=$("editorStage");
 let worker=null,file=null,image=null,objectUrl=null,lastAlpha=null,lastMetrics=null,maskAlpha=null,tool="remove",drawing=false,strokeChanged=false;
-let undoStack=[],redoStack=[],lastPoint=null;
+let undoStack=[],redoStack=[],lastPoint=null,originalMaskAlpha=null,inferenceRect=null;
 const say=m=>status.textContent=m,record=m=>{log.textContent+="\n"+m;log.scrollTop=log.scrollHeight;};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function setBusy(v){wasm.disabled=v||!image;gpu.disabled=v||!image;input.disabled=v;download.disabled=v||!maskAlpha;}
@@ -23,9 +23,9 @@ function createNativeMask(){
  const t=tmp.getContext("2d"),id=t.createImageData(1024,1024);
  for(let i=0;i<lastAlpha.length;i++){const p=i*4;id.data[p]=id.data[p+1]=id.data[p+2]=255;id.data[p+3]=lastAlpha[i];}
  t.putImageData(id,0,0);const scaled=document.createElement("canvas");scaled.width=w;scaled.height=h;
- const s=scaled.getContext("2d",{willReadFrequently:true});s.imageSmoothingEnabled=true;s.imageSmoothingQuality="high";s.drawImage(tmp,0,0,w,h);
+ const s=scaled.getContext("2d",{willReadFrequently:true});s.imageSmoothingEnabled=true;s.imageSmoothingQuality="high";const r=inferenceRect||{x:0,y:0,width:1024,height:1024};s.drawImage(tmp,r.x,r.y,r.width,r.height,0,0,w,h);
  const pixels=s.getImageData(0,0,w,h).data;maskAlpha=new Uint8ClampedArray(w*h);for(let i=0;i<maskAlpha.length;i++)maskAlpha[i]=pixels[i*4+3];
- undoStack=[];redoStack=[];$("editorEmpty").hidden=true;syncHistory();renderEditor();
+ originalMaskAlpha=maskAlpha.slice();undoStack=[];redoStack=[];$("editorEmpty").hidden=true;syncHistory();renderEditor();
 }
 function processedMask(){
  const w=image.naturalWidth,h=image.naturalHeight,threshold=Number($("maskThreshold").value),opacity=Number($("resultOpacity").value)/100;
@@ -63,12 +63,12 @@ editor.addEventListener("pointerup",endStroke);editor.addEventListener("pointerc
 $("brushRemove").addEventListener("click",()=>setTool("remove"));$("brushRestore").addEventListener("click",()=>setTool("restore"));
 function setTool(t){tool=t;$("brushRemove").classList.toggle("active",t==="remove");$("brushRestore").classList.toggle("active",t==="restore");editor.style.cursor=t==="remove"?"crosshair":"cell";}
 $("undoEdit").addEventListener("click",undo);$("redoEdit").addEventListener("click",redo);
-$("resetMask").addEventListener("click",()=>{if(!lastAlpha||!confirm("Restaurar a máscara original gerada pelo ISNet?"))return;saveUndo();createNativeMask();});
+$("resetMask").addEventListener("click",()=>{if(!lastAlpha||!confirm("Restaurar a máscara original gerada pelo ISNet?"))return;saveUndo();maskAlpha=originalMaskAlpha.slice();renderEditor();syncHistory();});
 ["brushSize","brushHardness","brushOpacity","maskThreshold","edgeSoftness","resultOpacity"].forEach(id=>$(id).addEventListener("input",()=>{const map={brushSize:["brushSizeValue",v=>v+" px"],brushHardness:["brushHardnessValue",v=>v+"%"],brushOpacity:["brushOpacityValue",v=>v+"%"],maskThreshold:["maskThresholdValue",v=>v],edgeSoftness:["edgeSoftnessValue",v=>v+" px"],resultOpacity:["resultOpacityValue",v=>v+"%"]};const [out,fmt]=map[id];$(out).textContent=fmt($(id).value);if(maskAlpha)renderEditor();}));
 ["previewBackground","customBackground","showMaskOverlay","zoomRange"].forEach(id=>$(id).addEventListener("input",()=>{if(maskAlpha)renderEditor();}));
 $("previewBackground").addEventListener("change",()=>{if(maskAlpha)renderEditor();});
 input.addEventListener("change",()=>{file=input.files&&input.files[0];if(!file)return;if(!file.type.startsWith("image/")){say("Selecione um arquivo de imagem.");return;}if(objectUrl)URL.revokeObjectURL(objectUrl);objectUrl=URL.createObjectURL(file);image=new Image();image.onload=()=>{original.src=objectUrl;$("fileInfo").textContent=file.name+" · "+image.naturalWidth+" × "+image.naturalHeight+" px";say("Imagem pronta. Escolha WASM ou WebGPU.");wasm.disabled=false;gpu.disabled=false;lastAlpha=null;maskAlpha=null;undoStack=[];redoStack=[];download.disabled=true;resultCanvas.width=resultCanvas.height=0;editor.width=editor.height=0;$("editorEmpty").hidden=false;syncHistory();};image.onerror=()=>say("Não foi possível decodificar a imagem.");image.src=objectUrl;});
-async function run(provider){if(!image)return;setBusy(true);progress.style.width="0%";say("Preparando imagem para "+provider+"…");record("\n--- "+provider.toUpperCase()+" · "+new Date().toLocaleString()+" ---");$("memoryMetric").textContent=memoryText();const c=document.createElement("canvas");c.width=1024;c.height=1024;const ctx=c.getContext("2d",{willReadFrequently:true});ctx.drawImage(image,0,0,1024,1024);const pixels=ctx.getImageData(0,0,1024,1024).data,copy=pixels.slice();if(!worker)initWorker();worker.postMessage({type:"run",provider,pixels:copy.buffer,width:1024,height:1024},[copy.buffer]);}
+async function run(provider){if(!image)return;setBusy(true);progress.style.width="0%";say("Preparando imagem para "+provider+"…");record("\n--- "+provider.toUpperCase()+" · "+new Date().toLocaleString()+" ---");$("memoryMetric").textContent=memoryText();const c=document.createElement("canvas");c.width=1024;c.height=1024;const ctx=c.getContext("2d",{willReadFrequently:true});const scale=Math.min(1024/image.naturalWidth,1024/image.naturalHeight),dw=image.naturalWidth*scale,dh=image.naturalHeight*scale,ox=(1024-dw)/2,oy=(1024-dh)/2;inferenceRect={x:ox,y:oy,width:dw,height:dh};ctx.fillStyle="#808080";ctx.fillRect(0,0,1024,1024);ctx.drawImage(image,ox,oy,dw,dh);const pixels=ctx.getImageData(0,0,1024,1024).data,copy=pixels.slice();record("Pré-processamento: proporção preservada; área útil "+Math.round(dw)+" × "+Math.round(dh)+" px.");if(!worker)initWorker();worker.postMessage({type:"run",provider,pixels:copy.buffer,width:1024,height:1024},[copy.buffer]);}
 wasm.addEventListener("click",()=>run("wasm"));gpu.addEventListener("click",()=>run("webgpu"));
 download.addEventListener("click",()=>{if(!maskAlpha||!image)return;const out=document.createElement("canvas");drawComposite(out,false,false);out.toBlob(blob=>{if(!blob)return;const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=(file.name.replace(/\.[^.]+$/,"")||"imagem")+"-clearcut.png";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},"image/png");});
 if(!("gpu" in navigator))gpu.disabled=true;
