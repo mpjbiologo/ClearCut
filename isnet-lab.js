@@ -4,6 +4,8 @@ const $=id=>document.getElementById(id);
 const input=$("imageInput"),wasm=$("runWasm"),gpu=$("runWebGpu"),download=$("downloadPng");
 const status=$("status"),log=$("log"),progress=$("progress"),original=$("originalPreview"),resultCanvas=$("resultCanvas");
 const editor=$("editorCanvas"),stage=$("editorStage"),brushCursor=$("brushCursor");
+// Keep the fixed brush indicator outside the scrolling editor so viewport coordinates stay aligned.
+if(brushCursor&&brushCursor.parentElement!==document.body)document.body.appendChild(brushCursor);
 let worker=null,file=null,image=null,objectUrl=null,lastAlpha=null,lastMetrics=null,maskAlpha=null,tool="remove",drawing=false,strokeChanged=false;
 let undoStack=[],redoStack=[],lastPoint=null,originalMaskAlpha=null,inferenceRect=null,cursorPosition=null;
 const say=m=>status.textContent=m,record=m=>{log.textContent+="\n"+m;log.scrollTop=log.scrollHeight;};
@@ -37,7 +39,7 @@ function processedMask(){
  return c;
 }
 function drawComposite(target,includeBackground,overlay){
- const w=image.naturalWidth,h=image.naturalHeight,ctx=target.getContext("2d");target.width=w;target.height=h;ctx.clearRect(0,0,w,h);
+ const w=image.naturalWidth,h=image.naturalHeight,ctx=target.getContext("2d");if(target.width!==w)target.width=w;if(target.height!==h)target.height=h;ctx.clearRect(0,0,w,h);
  if(includeBackground){const mode=$("previewBackground").value;if(mode==="custom"||mode!=="checker"){ctx.fillStyle=mode==="custom"?$("customBackground").value:mode;ctx.fillRect(0,0,w,h);}}
  ctx.drawImage(image,0,0,w,h);ctx.globalCompositeOperation="destination-in";ctx.drawImage(processedMask(),0,0);ctx.globalCompositeOperation="source-over";
  if(overlay&&$("showMaskOverlay").checked){const tint=ctx.createImageData(w,h);for(let i=0;i<maskAlpha.length;i++){const p=i*4;tint.data[p]=255;tint.data[p+1]=45;tint.data[p+2]=45;tint.data[p+3]=Math.round((255-maskAlpha[i])*.42);}const layer=document.createElement("canvas");layer.width=w;layer.height=h;layer.getContext("2d").putImageData(tint,0,0);ctx.drawImage(layer,0,0);}
@@ -49,7 +51,7 @@ function syncHistory(){$("undoEdit").disabled=!undoStack.length;$("redoEdit").di
 function restoreMask(arr){maskAlpha=arr.slice();renderEditor();syncHistory();}
 function undo(){if(!undoStack.length)return;redoStack.push(maskAlpha.slice());restoreMask(undoStack.pop());}
 function redo(){if(!redoStack.length)return;undoStack.push(maskAlpha.slice());restoreMask(redoStack.pop());}
-function pointFromEvent(e){const r=editor.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*editor.width,y:(e.clientY-r.top)/r.height*editor.height};}
+function pointFromEvent(e){const r=editor.getBoundingClientRect();if(!r.width||!r.height)return{x:0,y:0};const sx=editor.width/r.width,sy=editor.height/r.height;return{x:clamp((e.clientX-r.left)*sx,0,editor.width),y:clamp((e.clientY-r.top)*sy,0,editor.height)};}
 function updateBrushCursor(e){if(!brushCursor)return;if(e){const r=editor.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom){cursorPosition=null;brushCursor.hidden=true;return;}cursorPosition={x:e.clientX,y:e.clientY};}if(!maskAlpha||!image||!cursorPosition){brushCursor.hidden=true;return;}const r=editor.getBoundingClientRect(),scale=r.width/editor.width,diameter=Number($("brushSize").value)*scale;brushCursor.style.left=cursorPosition.x+"px";brushCursor.style.top=cursorPosition.y+"px";brushCursor.style.width=diameter+"px";brushCursor.style.height=diameter+"px";brushCursor.dataset.tool=tool;brushCursor.hidden=false;}
 function dab(x,y){
  const size=Number($("brushSize").value),radius=size/2,hard=Number($("brushHardness").value)/100,force=Number($("brushOpacity").value)/100;
@@ -57,7 +59,7 @@ function dab(x,y){
  for(let py=minY;py<=maxY;py++)for(let px=minX;px<=maxX;px++){const dist=Math.hypot(px+.5-x,py+.5-y);if(dist>radius)continue;const t=dist/radius,edge=t<=hard?1:hard>=.999?1:1-(t-hard)/(1-hard),smooth=edge*edge*(3-2*edge),amount=force*smooth,idx=py*w+px;maskAlpha[idx]=Math.round(maskAlpha[idx]+(target-maskAlpha[idx])*amount);}
 }
 function strokeTo(p){if(!lastPoint){dab(p.x,p.y);lastPoint=p;return;}const dx=p.x-lastPoint.x,dy=p.y-lastPoint.y,dist=Math.hypot(dx,dy),step=Math.max(1,Number($("brushSize").value)*.18),n=Math.ceil(dist/step);for(let i=1;i<=n;i++)dab(lastPoint.x+dx*i/n,lastPoint.y+dy*i/n);lastPoint=p;}
-editor.addEventListener("pointerdown",e=>{if(!maskAlpha)return;e.preventDefault();saveUndo();drawing=true;strokeChanged=true;lastPoint=null;editor.setPointerCapture(e.pointerId);strokeTo(pointFromEvent(e));renderEditor();});
+editor.addEventListener("pointerdown",e=>{if(!maskAlpha)return;e.preventDefault();editor.focus({preventScroll:true});saveUndo();drawing=true;strokeChanged=true;lastPoint=null;editor.setPointerCapture(e.pointerId);cursorPosition={x:e.clientX,y:e.clientY};updateBrushCursor();strokeTo(pointFromEvent(e));renderEditor();});
 editor.addEventListener("pointermove",e=>{updateBrushCursor(e);if(!drawing)return;strokeTo(pointFromEvent(e));renderEditor();});
 editor.addEventListener("pointerenter",e=>updateBrushCursor(e));
 editor.addEventListener("pointerleave",()=>{if(!drawing){cursorPosition=null;brushCursor.hidden=true;}});
@@ -67,7 +69,7 @@ editor.addEventListener("pointerup",e=>{endStroke();updateBrushCursor(e);});edit
 $("brushRemove").addEventListener("click",()=>setTool("remove"));$("brushRestore").addEventListener("click",()=>setTool("restore"));
 function setTool(t){tool=t;$("brushRemove").classList.toggle("active",t==="remove");$("brushRestore").classList.toggle("active",t==="restore");editor.style.cursor="none";if(!brushCursor.hidden)brushCursor.dataset.tool=tool;}
 $("undoEdit").addEventListener("click",undo);$("redoEdit").addEventListener("click",redo);
-window.addEventListener("keydown",e=>{const mod=e.ctrlKey||e.metaKey;if(!mod||e.altKey)return;const el=e.target,tag=el&&el.tagName?el.tagName.toLowerCase():"";if(tag==="input"||tag==="textarea"||tag==="select"||(el&&el.isContentEditable))return;const key=e.key.toLowerCase();if(key==="z"){e.preventDefault();if(e.shiftKey)redo();else undo();}else if(key==="y"){e.preventDefault();redo();}});
+document.addEventListener("keydown",e=>{const mod=e.ctrlKey||e.metaKey;if(!mod||e.altKey)return;const el=e.target,tag=el&&el.tagName?el.tagName.toLowerCase():"",type=el&&el.type?el.type.toLowerCase():"";const textEntry=(tag==="textarea"||(tag==="input"&&["text","search","url","email","password","tel"].includes(type))||(el&&el.isContentEditable));if(textEntry)return;const key=e.key.toLowerCase();if(key==="z"){e.preventDefault();e.stopPropagation();if(e.shiftKey)redo();else undo();}else if(key==="y"){e.preventDefault();e.stopPropagation();redo();}},true);
 $("resetMask").addEventListener("click",()=>{if(!lastAlpha||!confirm("Restaurar a máscara original gerada pelo ISNet?"))return;saveUndo();maskAlpha=originalMaskAlpha.slice();renderEditor();syncHistory();});
 ["brushSize","brushHardness","brushOpacity","maskThreshold","edgeSoftness","resultOpacity"].forEach(id=>$(id).addEventListener("input",()=>{const map={brushSize:["brushSizeValue",v=>v+" px"],brushHardness:["brushHardnessValue",v=>v+"%"],brushOpacity:["brushOpacityValue",v=>v+"%"],maskThreshold:["maskThresholdValue",v=>v],edgeSoftness:["edgeSoftnessValue",v=>v+" px"],resultOpacity:["resultOpacityValue",v=>v+"%"]};const [out,fmt]=map[id];$(out).textContent=fmt($(id).value);if(maskAlpha)renderEditor();updateBrushCursor();}));
 ["previewBackground","customBackground","showMaskOverlay","zoomRange"].forEach(id=>$(id).addEventListener("input",()=>{if(maskAlpha)renderEditor();}));
