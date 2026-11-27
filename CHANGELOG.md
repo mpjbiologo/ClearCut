@@ -34,3 +34,14 @@ Todas as alterações relevantes do projeto serão registradas aqui.
 - O Worker é reiniciado após falha de backend, evitando reutilizar uma instância do ONNX Runtime cujo WASM tenha falhado na inicialização.
 - Atualizada a versão do cache do service worker para disponibilizar os arquivos corrigidos.
 - WebGPU continua opcional; quando indisponível, o teste WASM permanece como alternativa.
+
+
+## 2026-11-27 — Refinamento experimental de máscara e pré-visualização
+
+- Adicionados pincéis de remoção e restauração diretamente sobre a máscara ISNet, sem alterar a imagem original.
+- Incluídos tamanho, dureza e força do pincel, histórico de desfazer/refazer e redefinição da máscara.
+- Adicionadas opções de prévia quadriculada, branca, preta, cinza e cor personalizada, além de sobreposição da máscara.
+- Incluídos ajustes de limite da máscara, suavização de borda e opacidade do recorte; esses ajustes afetam a prévia e a exportação PNG transparente.
+- Exportação continua sem incorporar o fundo de referência.
+- Corrigido o mapeamento da máscara para preservar a proporção original, usando preenchimento neutro no espaço restante do modelo 1024 × 1024.
+- Recurso restrito ao laboratório experimental; o editor principal permanece inalterado até validação de qualidade e desempenho.
