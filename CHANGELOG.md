@@ -45,3 +45,11 @@ Todas as alterações relevantes do projeto serão registradas aqui.
 - Exportação continua sem incorporar o fundo de referência.
 - Corrigido o mapeamento da máscara para preservar a proporção original, usando preenchimento neutro no espaço restante do modelo 1024 × 1024.
 - Recurso restrito ao laboratório experimental; o editor principal permanece inalterado até validação de qualidade e desempenho.
+
+
+## 2026-11-27 — Cursor visual do pincel e atalhos de histórico
+
+- Adicionado cursor circular que acompanha o ponteiro sobre a imagem e representa o diâmetro real do pincel, respeitando o zoom e a escala exibida.
+- O contorno muda de cor conforme o modo Remover ou Restaurar e não interfere na imagem exportada.
+- Implementados atalhos Ctrl+Z / Cmd+Z para desfazer, Ctrl+Shift+Z / Cmd+Shift+Z e Ctrl+Y / Cmd+Y para refazer.
+- Atalhos não interceptam a digitação em campos de formulário.
