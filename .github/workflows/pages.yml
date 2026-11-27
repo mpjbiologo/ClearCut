@@ -20,7 +20,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-      - name: Validate JavaScript syntax\n        run: |\n          node --check app.js\n          node --check isnet-lab.js\n          node --check isnet-worker.js\n      - name: Configure Pages
+      - name: Validate JavaScript syntax
+        run: |
+          node --check app.js
+          node --check isnet-lab.js
+          node --check isnet-worker.js
         uses: actions/configure-pages@v6
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v5
