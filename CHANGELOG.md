@@ -36,7 +36,7 @@ Todas as alterações relevantes do projeto serão registradas aqui.
 - WebGPU continua opcional; quando indisponível, o teste WASM permanece como alternativa.
 
 
-## 2026-11-27 — Refinamento experimental de máscara e pré-visualização
+## 2026-11-27 — Cursor visual dos pincéis no refinador\n\n- Adicionado contorno circular visível que acompanha o ponteiro e representa o diâmetro real do pincel na escala atual do canvas.\n- Diferenciada visualmente a ferramenta Restaurar da ferramenta Remover.\n- O cursor acompanha os ajustes de tamanho e desaparece ao sair da área de edição.\n\n## 2026-11-27 — Refinamento experimental de máscara e pré-visualização
 
 - Adicionados pincéis de remoção e restauração diretamente sobre a máscara ISNet, sem alterar a imagem original.
 - Incluídos tamanho, dureza e força do pincel, histórico de desfazer/refazer e redefinição da máscara.
