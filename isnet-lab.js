@@ -3,7 +3,7 @@
 const $=id=>document.getElementById(id);
 const input=$("imageInput"),wasm=$("runWasm"),gpu=$("runWebGpu"),download=$("downloadPng");
 const status=$("status"),log=$("log"),progress=$("progress"),original=$("originalPreview"),resultCanvas=$("resultCanvas");
-const editor=$("editorCanvas"),stage=$("editorStage");
+const editor=$("editorCanvas"),stage=$("editorStage"),brushCursor=$("brushCursor");
 let worker=null,file=null,image=null,objectUrl=null,lastAlpha=null,lastMetrics=null,maskAlpha=null,tool="remove",drawing=false,strokeChanged=false;
 let undoStack=[],redoStack=[],lastPoint=null,originalMaskAlpha=null,inferenceRect=null;
 const say=m=>status.textContent=m,record=m=>{log.textContent+="\n"+m;log.scrollTop=log.scrollHeight;};
@@ -50,6 +50,15 @@ function restoreMask(arr){maskAlpha=arr.slice();renderEditor();syncHistory();}
 function undo(){if(!undoStack.length)return;redoStack.push(maskAlpha.slice());restoreMask(undoStack.pop());}
 function redo(){if(!redoStack.length)return;undoStack.push(maskAlpha.slice());restoreMask(redoStack.pop());}
 function pointFromEvent(e){const r=editor.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*editor.width,y:(e.clientY-r.top)/r.height*editor.height};}
+function updateBrushCursor(e){
+ if(!maskAlpha||!image||!editor.getBoundingClientRect().width){brushCursor.style.display="none";stage.classList.remove("brush-ready");return;}
+ const er=editor.getBoundingClientRect(),sr=stage.getBoundingClientRect(),scale=er.width/editor.width;
+ const diameter=Math.max(4,Number($("brushSize").value)*scale);
+ brushCursor.style.width=diameter+"px";brushCursor.style.height=diameter+"px";
+ brushCursor.style.left=(e.clientX-sr.left+stage.scrollLeft)+"px";
+ brushCursor.style.top=(e.clientY-sr.top+stage.scrollTop)+"px";
+ brushCursor.classList.toggle("restore",tool==="restore");brushCursor.style.display="block";stage.classList.add("brush-ready");
+}
 function dab(x,y){
  const size=Number($("brushSize").value),radius=size/2,hard=Number($("brushHardness").value)/100,force=Number($("brushOpacity").value)/100;
  const w=maskAlpha.length?image.naturalWidth:0,h=image.naturalHeight, minX=clamp(Math.floor(x-radius),0,w-1),maxX=clamp(Math.ceil(x+radius),0,w-1),minY=clamp(Math.floor(y-radius),0,h-1),maxY=clamp(Math.ceil(y+radius),0,h-1),target=tool==="restore"?255:0;
@@ -57,14 +66,14 @@ function dab(x,y){
 }
 function strokeTo(p){if(!lastPoint){dab(p.x,p.y);lastPoint=p;return;}const dx=p.x-lastPoint.x,dy=p.y-lastPoint.y,dist=Math.hypot(dx,dy),step=Math.max(1,Number($("brushSize").value)*.18),n=Math.ceil(dist/step);for(let i=1;i<=n;i++)dab(lastPoint.x+dx*i/n,lastPoint.y+dy*i/n);lastPoint=p;}
 editor.addEventListener("pointerdown",e=>{if(!maskAlpha)return;e.preventDefault();saveUndo();drawing=true;strokeChanged=true;lastPoint=null;editor.setPointerCapture(e.pointerId);strokeTo(pointFromEvent(e));renderEditor();});
-editor.addEventListener("pointermove",e=>{if(!drawing)return;strokeTo(pointFromEvent(e));renderEditor();});
+editor.addEventListener("pointermove",e=>{updateBrushCursor(e);if(!drawing)return;strokeTo(pointFromEvent(e));renderEditor();});\neditor.addEventListener("pointerenter",updateBrushCursor);editor.addEventListener("pointerleave",()=>{if(!drawing){brushCursor.style.display="none";stage.classList.remove("brush-ready");}});
 function endStroke(){if(!drawing)return;drawing=false;lastPoint=null;if(strokeChanged){paintRawResult();record("Máscara refinada manualmente ("+(tool==="remove"?"remoção":"restauração")+").");}strokeChanged=false;}
 editor.addEventListener("pointerup",endStroke);editor.addEventListener("pointercancel",endStroke);editor.addEventListener("lostpointercapture",endStroke);
 $("brushRemove").addEventListener("click",()=>setTool("remove"));$("brushRestore").addEventListener("click",()=>setTool("restore"));
-function setTool(t){tool=t;$("brushRemove").classList.toggle("active",t==="remove");$("brushRestore").classList.toggle("active",t==="restore");editor.style.cursor=t==="remove"?"crosshair":"cell";}
+function setTool(t){tool=t;$("brushRemove").classList.toggle("active",t==="remove");$("brushRestore").classList.toggle("active",t==="restore");brushCursor.classList.toggle("restore",t==="restore");}
 $("undoEdit").addEventListener("click",undo);$("redoEdit").addEventListener("click",redo);
 $("resetMask").addEventListener("click",()=>{if(!lastAlpha||!confirm("Restaurar a máscara original gerada pelo ISNet?"))return;saveUndo();maskAlpha=originalMaskAlpha.slice();renderEditor();syncHistory();});
-["brushSize","brushHardness","brushOpacity","maskThreshold","edgeSoftness","resultOpacity"].forEach(id=>$(id).addEventListener("input",()=>{const map={brushSize:["brushSizeValue",v=>v+" px"],brushHardness:["brushHardnessValue",v=>v+"%"],brushOpacity:["brushOpacityValue",v=>v+"%"],maskThreshold:["maskThresholdValue",v=>v],edgeSoftness:["edgeSoftnessValue",v=>v+" px"],resultOpacity:["resultOpacityValue",v=>v+"%"]};const [out,fmt]=map[id];$(out).textContent=fmt($(id).value);if(maskAlpha)renderEditor();}));
+["brushSize","brushHardness","brushOpacity","maskThreshold","edgeSoftness","resultOpacity"].forEach(id=>$(id).addEventListener("input",()=>{const map={brushSize:["brushSizeValue",v=>v+" px"],brushHardness:["brushHardnessValue",v=>v+"%"],brushOpacity:["brushOpacityValue",v=>v+"%"],maskThreshold:["maskThresholdValue",v=>v],edgeSoftness:["edgeSoftnessValue",v=>v+" px"],resultOpacity:["resultOpacityValue",v=>v+"%"]};const [out,fmt]=map[id];$(out).textContent=fmt($(id).value);if(maskAlpha)renderEditor();if(id==="brushSize"&&brushCursor.style.display==="block"){const er=editor.getBoundingClientRect(),scale=er.width/editor.width,diameter=Math.max(4,Number($(id).value)*scale);brushCursor.style.width=diameter+"px";brushCursor.style.height=diameter+"px";}}));
 ["previewBackground","customBackground","showMaskOverlay","zoomRange"].forEach(id=>$(id).addEventListener("input",()=>{if(maskAlpha)renderEditor();}));
 $("previewBackground").addEventListener("change",()=>{if(maskAlpha)renderEditor();});
 input.addEventListener("change",()=>{file=input.files&&input.files[0];if(!file)return;if(!file.type.startsWith("image/")){say("Selecione um arquivo de imagem.");return;}if(objectUrl)URL.revokeObjectURL(objectUrl);objectUrl=URL.createObjectURL(file);image=new Image();image.onload=()=>{original.src=objectUrl;$("fileInfo").textContent=file.name+" · "+image.naturalWidth+" × "+image.naturalHeight+" px";say("Imagem pronta. Escolha WASM ou WebGPU.");wasm.disabled=false;gpu.disabled=false;lastAlpha=null;maskAlpha=null;undoStack=[];redoStack=[];download.disabled=true;resultCanvas.width=resultCanvas.height=0;editor.width=editor.height=0;$("editorEmpty").hidden=false;syncHistory();};image.onerror=()=>say("Não foi possível decodificar a imagem.");image.src=objectUrl;});
