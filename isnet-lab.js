@@ -5,7 +5,7 @@ const input=$("imageInput"),wasm=$("runWasm"),gpu=$("runWebGpu"),download=$("dow
 const status=$("status"),log=$("log"),progress=$("progress"),original=$("originalPreview"),resultCanvas=$("resultCanvas");
 const editor=$("editorCanvas"),stage=$("editorStage"),brushCursor=$("brushCursor");
 let worker=null,file=null,image=null,objectUrl=null,lastAlpha=null,lastMetrics=null,maskAlpha=null,tool="remove",drawing=false,strokeChanged=false;
-let undoStack=[],redoStack=[],lastPoint=null,originalMaskAlpha=null,inferenceRect=null;
+let undoStack=[],redoStack=[],lastPoint=null,originalMaskAlpha=null,inferenceRect=null,cursorPosition=null;
 const say=m=>status.textContent=m,record=m=>{log.textContent+="\n"+m;log.scrollTop=log.scrollHeight;};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function setBusy(v){wasm.disabled=v||!image;gpu.disabled=v||!image;input.disabled=v;download.disabled=v||!maskAlpha;}
@@ -50,7 +50,7 @@ function restoreMask(arr){maskAlpha=arr.slice();renderEditor();syncHistory();}
 function undo(){if(!undoStack.length)return;redoStack.push(maskAlpha.slice());restoreMask(undoStack.pop());}
 function redo(){if(!redoStack.length)return;undoStack.push(maskAlpha.slice());restoreMask(redoStack.pop());}
 function pointFromEvent(e){const r=editor.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*editor.width,y:(e.clientY-r.top)/r.height*editor.height};}
-function updateBrushCursor(e){if(!brushCursor)return;if(!maskAlpha||!image){brushCursor.hidden=true;return;}const r=editor.getBoundingClientRect();if(e){if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom){brushCursor.hidden=true;return;}brushCursor.style.left=e.clientX+"px";brushCursor.style.top=e.clientY+"px";}const scale=r.width/editor.width,diameter=Number($("brushSize").value)*scale;brushCursor.style.width=diameter+"px";brushCursor.style.height=diameter+"px";brushCursor.dataset.tool=tool;brushCursor.hidden=false;}
+function updateBrushCursor(e){if(!brushCursor)return;if(e){const r=editor.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom){cursorPosition=null;brushCursor.hidden=true;return;}cursorPosition={x:e.clientX,y:e.clientY};}if(!maskAlpha||!image||!cursorPosition){brushCursor.hidden=true;return;}const r=editor.getBoundingClientRect(),scale=r.width/editor.width,diameter=Number($("brushSize").value)*scale;brushCursor.style.left=cursorPosition.x+"px";brushCursor.style.top=cursorPosition.y+"px";brushCursor.style.width=diameter+"px";brushCursor.style.height=diameter+"px";brushCursor.dataset.tool=tool;brushCursor.hidden=false;}
 function dab(x,y){
  const size=Number($("brushSize").value),radius=size/2,hard=Number($("brushHardness").value)/100,force=Number($("brushOpacity").value)/100;
  const w=maskAlpha.length?image.naturalWidth:0,h=image.naturalHeight, minX=clamp(Math.floor(x-radius),0,w-1),maxX=clamp(Math.ceil(x+radius),0,w-1),minY=clamp(Math.floor(y-radius),0,h-1),maxY=clamp(Math.ceil(y+radius),0,h-1),target=tool==="restore"?255:0;
@@ -60,7 +60,7 @@ function strokeTo(p){if(!lastPoint){dab(p.x,p.y);lastPoint=p;return;}const dx=p.
 editor.addEventListener("pointerdown",e=>{if(!maskAlpha)return;e.preventDefault();saveUndo();drawing=true;strokeChanged=true;lastPoint=null;editor.setPointerCapture(e.pointerId);strokeTo(pointFromEvent(e));renderEditor();});
 editor.addEventListener("pointermove",e=>{updateBrushCursor(e);if(!drawing)return;strokeTo(pointFromEvent(e));renderEditor();});
 editor.addEventListener("pointerenter",e=>updateBrushCursor(e));
-editor.addEventListener("pointerleave",()=>{if(!drawing)brushCursor.hidden=true;});
+editor.addEventListener("pointerleave",()=>{if(!drawing){cursorPosition=null;brushCursor.hidden=true;}});
 editor.addEventListener("pointerdown",e=>updateBrushCursor(e));
 function endStroke(){if(!drawing)return;drawing=false;lastPoint=null;if(strokeChanged){paintRawResult();record("Máscara refinada manualmente ("+(tool==="remove"?"remoção":"restauração")+").");}strokeChanged=false;}
 editor.addEventListener("pointerup",e=>{endStroke();updateBrushCursor(e);});editor.addEventListener("pointercancel",endStroke);editor.addEventListener("lostpointercapture",endStroke);
