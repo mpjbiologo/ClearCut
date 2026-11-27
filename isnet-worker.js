@@ -3,7 +3,7 @@ importScripts("https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/ort.min.
 const MODEL_BASE = "https://huggingface.co/chenjindu/isnet-web/resolve/cda7d26/";
 const PARTS = ["isnet-w8.part00","isnet-w8.part01","isnet-w8.part02"];
 let sessions = new Map(), modelBuffer = null, modelBytes = 0;
-const send = (type, data={}) => self.postMessage({type,...data});
+const send = (type, data={}, transfer=[]) => self.postMessage({type,...data}, transfer);
 async function getModel() {
   if (modelBuffer) return modelBuffer;
   const started = performance.now();
