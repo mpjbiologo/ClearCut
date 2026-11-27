@@ -53,3 +53,12 @@ Todas as alterações relevantes do projeto serão registradas aqui.
 - O contorno muda de cor conforme o modo Remover ou Restaurar e não interfere na imagem exportada.
 - Implementados atalhos Ctrl+Z / Cmd+Z para desfazer, Ctrl+Shift+Z / Cmd+Shift+Z e Ctrl+Y / Cmd+Y para refazer.
 - Atalhos não interceptam a digitação em campos de formulário.
+
+
+## 2026-11-27 — Correção do posicionamento do pincel e do histórico
+
+- Corrigido o mapeamento entre coordenadas do ponteiro na tela e pixels reais do canvas, considerando a escala efetivamente renderizada.
+- Movido o indicador circular para fora do contêiner com rolagem, evitando deslocamentos causados pelo contexto de posicionamento e recorte do editor.
+- O canvas mantém suas dimensões durante os traços, evitando reinicializações desnecessárias enquanto o ponteiro está capturado.
+- O atalho de desfazer/refazer passou a escutar em captura e não é bloqueado quando o foco permanece em controles de ajuste como os sliders; campos de texto continuam protegidos.
+- A área de edição recebe foco ao iniciar um traço, tornando os atalhos previsíveis.
