@@ -25,3 +25,12 @@ Todas as alterações relevantes do projeto serão registradas aqui.
 - Fixado o runner em Ubuntu 24.04 para evitar mudanças automáticas de imagem durante os builds.
 - Mantida a configuração de permissões necessária para publicação pelo GitHub Actions.
 - A primeira ativação do GitHub Pages ainda precisa ser feita nas configurações do repositório; o token padrão do workflow não tem permissão administrativa para criar o site.
+
+
+## 2026-11-27 — Correção do runtime WASM no laboratório ISNet
+
+- Configurados os caminhos explícitos dos artefatos `.mjs` e `.wasm` do ONNX Runtime Web 1.22.0 via jsDelivr, mantendo a mesma versão do runtime.
+- Limitado o WASM a um thread para evitar dependência de `SharedArrayBuffer` no GitHub Pages.
+- O Worker é reiniciado após falha de backend, evitando reutilizar uma instância do ONNX Runtime cujo WASM tenha falhado na inicialização.
+- Atualizada a versão do cache do service worker para disponibilizar os arquivos corrigidos.
+- WebGPU continua opcional; quando indisponível, o teste WASM permanece como alternativa.
