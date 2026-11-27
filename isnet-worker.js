@@ -1,5 +1,16 @@
 "use strict";
 importScripts("https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/ort.min.js");
+
+// O runtime foi carregado por CDN, portanto seus artefatos WASM também
+// precisam apontar explicitamente para a mesma versão/build.
+const ORT_DIST = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/";
+ort.env.wasm.wasmPaths = {
+  mjs: ORT_DIST + "ort-wasm-simd-threaded.jsep.mjs",
+  wasm: ORT_DIST + "ort-wasm-simd-threaded.jsep.wasm"
+};
+// Um único thread evita depender de SharedArrayBuffer/COOP/COEP no Pages.
+ort.env.wasm.numThreads = 1;
+
 const MODEL_BASE = "https://huggingface.co/chenjindu/isnet-web/resolve/cda7d26/";
 const PARTS = ["isnet-w8.part00","isnet-w8.part01","isnet-w8.part02"];
 let sessions = new Map(), modelBuffer = null, modelBytes = 0;
@@ -34,7 +45,7 @@ self.onmessage = async (event) => {
   const {type,provider,pixels,width,height} = event.data || {};
   if (type !== "run") return;
   try {
-    if (provider === "webgpu" && !("gpu" in self.navigator)) throw new Error("WebGPU não está disponível neste navegador/worker.");
+    if (provider === "webgpu" && !("gpu" in self.navigator)) throw new Error("WebGPU não está disponível neste navegador/worker. Use o teste WASM.");
     const session = await getSession(provider);
     const size=1024, count=size*size, input=new Float32Array(3*count);
     const source=new Uint8ClampedArray(pixels);
@@ -54,5 +65,7 @@ self.onmessage = async (event) => {
     const alpha=new Uint8ClampedArray(count);
     for(let i=0;i<count;i++) alpha[i]=Math.round(Math.max(0,Math.min(1,(Number(output.data[i])-min)/(max-min)))*255);
     send("result",{provider,width:size,height:size,alpha:alpha.buffer,inferenceMs,modelBytes,estimatedBufferBytes:modelBytes+input.byteLength+output.data.byteLength+alpha.byteLength,min,max},[alpha.buffer]);
-  } catch(error) { send("error",{provider,message:error && error.message ? error.message : String(error)}); }
+  } catch(error) {
+    send("error",{provider,message:error && error.message ? error.message : String(error)});
+  }
 };
